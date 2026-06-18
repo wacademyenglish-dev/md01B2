@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>WOLF LABS | B2 The Town Hall</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- C-Suite Fonts: Playfair for elegance, Inter for clean reading, Fira Code for data -->
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,900;1,400&family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-void: #050505;        
+            --bg-panel: #111111;       
+            --bg-card: #1A1A1A;        
+            --accent-brand: #D4AF37; /* Executive Gold */  
+            --accent-light: #F3E5AB; /* Champagne */ 
+            --accent-alert: #E63946; /* Refined Red */  
+            --accent-success: #2A9D8F; /* Refined Green */
+            --accent-warn: #F4A261;
+            --text-main: #E0E0E0;      
+            --text-muted: #888888;     
+            --shadow-glow: 0 0 30px rgba(212, 175, 55, 0.15);
+            --border-light: rgba(255,255,255,0.08);
+        }
+
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: var(--bg-void);
+            color: var(--text-main);
+            overflow: hidden;
+            -webkit-tap-highlight-color: transparent;
+            background-image: 
+                radial-gradient(circle at 50% 0%, rgba(212, 175, 55, 0.03), transparent 40%),
+                radial-gradient(circle at 50% 100%, rgba(255, 255, 255, 0.02), transparent 40%);
+        }
+
+        h1, h2, h3, .font-display { font-family: 'Playfair Display', serif; letter-spacing: -0.01em; }
+        .font-code { font-family: 'Fira Code', monospace; }
+
+        .hint-pt { display: none; color: var(--accent-light); font-size: 0.85em; font-weight: 500; font-style: italic; margin-top: 6px; font-family: 'Inter', sans-serif; letter-spacing: 0.5px; opacity: 0.8;}
+        body.show-translation .hint-pt { display: block; animation: fadeIn 0.3s ease forwards; }
+        body.show-translation span.hint-pt { display: inline-block; }
+
+        #hud-top {
+            position: fixed; top: 0; left: 0; right: 0; padding: 15px 30px;
+            background: rgba(5, 5, 5, 0.85); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--border-light); z-index: 1000; box-shadow: 0 4px 20px rgba(0,0,0,0.8);
+        }
+        
+        .hud-metric { background: rgba(255,255,255,0.03); border: 1px solid var(--border-light); padding: 6px 16px; border-radius: 4px; display: flex; align-items: center; gap: 12px;}
+        .hud-val { font-family: 'Playfair Display', serif; font-size: 1.4rem; font-weight: 700; font-variant-numeric: tabular-nums;}
+
+        #mission-arena { height: 100vh; padding-bottom: 120px; }
+
+        .executive-card {
+            background-color: var(--bg-panel); border-radius: 4px; padding: 3rem;
+            box-shadow: 0 20px 40px -10px rgba(0,0,0,0.9); position: relative; transition: all 0.3s ease;
+            border: 1px solid var(--border-light);
+        }
+
+        .btn-gold {
+            background: linear-gradient(135deg, var(--accent-brand), #B8860B); color: #000; border-radius: 4px;
+            font-family: 'Inter', sans-serif; font-weight: 600; text-transform: uppercase;
+            letter-spacing: 0.15em; transition: all 0.3s ease; border: none; cursor: pointer;
+            box-shadow: 0 4px 15px rgba(212, 175, 55, 0.2); font-size: 0.9rem;
+        }
+        .btn-gold:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(212, 175, 55, 0.4); filter: brightness(1.1);}
+        .btn-gold:active { transform: scale(0.98); }
+
+        .shifter-row {
+            background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 4px; transition: all 0.3s ease; cursor: pointer; padding: 1.2rem; display: flex; flex-direction: column; gap: 10px;
+        }
+        .shifter-row:hover:not(.locked) { border-color: var(--accent-brand); background: rgba(212, 175, 55, 0.02); }
+        .shifter-row.correct { border-color: var(--accent-brand); background: rgba(212, 175, 55, 0.08); }
+        .shifter-row.wrong { border-color: var(--accent-alert); background: rgba(230, 57, 70, 0.05); opacity: 0.5; }
+        
+        .raw-quote { font-family: 'Inter', sans-serif; font-style: italic; color: var(--text-muted); font-size: 1.1rem; border-left: 3px solid var(--border-light); padding-left: 15px;}
+        .polished-quote { font-family: 'Playfair Display', serif; font-size: 1.6rem; color: var(--accent-brand); border-left: 3px solid var(--accent-brand); padding-left: 15px; display: none; opacity: 0;}
+        .polished-quote.revealed { display: block; animation: fadeIn 0.5s ease forwards; }
+
+        .mcq-row {
+            background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 4px; transition: all 0.2s ease; cursor: pointer; display: flex; align-items: center; padding: 1.2rem 1.5rem;
+        }
+        .mcq-row:hover:not(.locked-check) { border-color: var(--accent-brand); background: rgba(212, 175, 55, 0.02);}
+        .mcq-row.correct { border-left: 4px solid var(--accent-brand); background: rgba(212, 175, 55, 0.1); color: var(--accent-light); }
+        .mcq-row.wrong { border-left: 4px solid var(--accent-alert); background: rgba(230, 57, 70, 0.05); color: #FCA5A5; }
+
+        #nav-console {
+            position: fixed; bottom: 0; left: 0; width: 100%; height: 80px;
+            background: rgba(17, 17, 17, 0.95); backdrop-filter: blur(20px); border-top: 1px solid var(--border-light);
+            display: flex; justify-content: space-between; align-items: center; padding: 0 40px; z-index: 5000; box-shadow: 0 -10px 40px rgba(0,0,0,0.8);
+        }
+
+        .drawer { background: var(--bg-panel); color: var(--text-main); border-left: 1px solid var(--border-light); transform: translateX(100%); transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1); z-index: 5100; box-shadow: -20px 0 50px rgba(0,0,0,0.9);}
+        .drawer.active { transform: translateX(0); }
+
+        .fade-in { animation: fadeIn 0.5s ease forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
+        @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-3px, 0, 0); } 40%, 60% { transform: translate3d(3px, 0, 0); } }
+
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: var(--accent-brand); }
+        ::-webkit-scrollbar-track { background: var(--bg-base); }
+
+        #confetti-canvas { position: fixed; inset: 0; pointer-events: none; z-index: 9999; }
+
+        #whiteboard-container {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            z-index: 4000; pointer-events: none; display: none;
+        }
+        #whiteboard-container.active { display: block; pointer-events: all; }
+        #whiteboard-container.active.write-mode { cursor: text; }
+        #whiteboard-container.active.delete-mode { cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="red" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>') 12 12, auto; }
+        #whiteboard-layer { position: absolute; inset: 0; overflow: hidden; background: rgba(5,5,5,0.4); backdrop-filter: blur(2px);}
+        .wb-text-note {
+            position: absolute; min-width: 20px; min-height: 30px; font-size: 1.6rem; font-family: 'Playfair Display', serif;
+            font-weight: 600; outline: none; padding: 4px 10px; border-radius: 4px; white-space: pre-wrap; word-wrap: break-word; max-width: 80vw;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.9);
+        }
+        .wb-text-note:focus { border: 1px dashed rgba(212,175,55,0.5); background: rgba(0,0,0,0.8); cursor: text !important;}
+        .wb-tools {
+            position: absolute; bottom: 100px; right: 40px; background: rgba(17, 17, 17, 0.95);
+            border: 1px solid var(--accent-brand); padding: 12px; border-radius: 8px; display: flex; gap: 12px; flex-direction: column; box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+        }
+        .wb-btn { width: 32px; height: 32px; border-radius: 4px; border: 1px solid transparent; cursor: pointer; display: flex; justify-content: center; align-items: center; color: white; transition: all 0.2s;}
+        .wb-btn:hover { transform: scale(1.1); border-color: var(--accent-brand);}
+        .wb-btn.active { border-color: var(--accent-brand); box-shadow: 0 0 10px rgba(212,175,55,0.3); }
+    </style>
+</head>
+<body class="flex flex-col h-screen overflow-hidden text-base">
+
+    <canvas id="confetti-canvas"></canvas>
+
+    <div id="hud-top" class="hidden justify-between items-center w-full">
+        <div class="flex items-center gap-8">
+            <div class="hud-metric">
+                <i class="fas fa-bullhorn text-[var(--accent-light)] opacity-70 text-xl"></i>
+                <div class="flex flex-col">
+                    <span class="text-[9px] font-medium text-gray-500 uppercase tracking-widest font-code">Morale</span>
+                    <span id="hp-val" class="hud-val text-[var(--accent-light)]">100%</span>
+                </div>
+            </div>
+            <div class="hud-metric border-[var(--accent-brand)] bg-[var(--accent-brand)]/5">
+                <i class="fas fa-chart-line text-[var(--accent-brand)] text-xl"></i>
+                <div class="flex flex-col">
+                    <span class="text-[9px] font-medium text-[var(--accent-brand)] uppercase tracking-widest font-code">Influence</span>
+                    <span id="xp-val" class="hud-val text-[var(--accent-brand)]">0 Pts</span>
+                </div>
+            </div>
+        </div>
+        <div class="text-right flex items-center gap-6">
+            <button onclick="toggleTeacherHUD()" class="px-4 py-2 bg-transparent border border-[var(--accent-brand)] text-[var(--accent-brand)] rounded text-[10px] uppercase tracking-widest hover:bg-[var(--accent-brand)] hover:text-black transition-all font-bold font-code"><i class="fas fa-briefcase mr-2"></i>C-Suite Panel</button>
+            <div class="border-l border-gray-700 pl-6">
+                <p class="font-display text-xl font-black text-white tracking-widest leading-none uppercase">WOLF LABS</p>
+                <p class="text-[10px] font-medium text-gray-400 tracking-[0.2em] uppercase mt-1">Upper B2 Executive</p>
+            </div>
+        </div>
+    </div>
+
+    <main id="dashboard" class="flex flex-col items-center relative px-8 pt-16 pb-48 z-10 w-full h-screen overflow-y-auto">
+        <div class="max-w-4xl w-full flex flex-col items-center text-center space-y-8 animate-in fade-in my-auto pb-10">
+            
+            <div class="executive-card p-8 mb-4 mt-10 inline-block border-t-2 border-[var(--accent-brand)] shadow-glow">
+                <div class="w-24 h-24 bg-[var(--bg-void)] rounded-full flex items-center justify-center overflow-hidden border border-[var(--border-light)] mx-auto">
+                    <i class="fas fa-microphone-alt text-4xl text-[var(--accent-brand)]"></i>
+                </div>
+            </div>
+
+            <div class="space-y-4">
+                <p class="text-[var(--accent-brand)] font-medium text-xs tracking-[0.4em] uppercase font-code">Module 2</p>
+                <h1 class="text-5xl md:text-7xl font-black text-white leading-tight tracking-tight font-display uppercase">The Town <br> <span class="italic text-[var(--accent-brand)]">Hall</span></h1>
+                <p class="text-lg text-[var(--text-muted)] font-light mt-6 max-w-2xl mx-auto leading-relaxed">Master the art of executive presence. Learn to command a room and emphasize key points using Cleft Sentences.</p>
+            </div>
+            
+            <div class="flex flex-wrap justify-center gap-4 font-code mt-6">
+                <span class="px-4 py-2 border border-[var(--accent-brand)]/40 bg-[var(--accent-brand)]/5 text-[10px] font-medium uppercase tracking-widest text-[var(--accent-light)] rounded-full">Public Speaking</span>
+                <span class="px-4 py-2 border border-gray-700 text-[10px] font-medium uppercase tracking-widest text-gray-400 rounded-full">Cleft Sentences</span>
+                <span class="px-4 py-2 border border-gray-700 text-[10px] font-medium uppercase tracking-widest text-gray-400 rounded-full">Emphasis</span>
+            </div>
+            
+            <button onclick="startMission()" class="mt-14 btn-gold px-16 py-4 text-sm mb-10">
+                Take the Stage
+            </button>
+        </div>
+    </main>
+
+    <main id="mission-arena" class="hidden flex-grow flex-col overflow-hidden relative mt-20">
+        <div id="mission-content" class="flex-grow overflow-y-auto px-6 py-12 flex flex-col items-center w-full"></div>
+    </main>
+
+    <footer id="nav-console" class="hidden font-inter">
+        <div class="flex items-center gap-6 w-1/4">
+            <button onclick="goHome()" class="text-gray-500 hover:text-[var(--accent-brand)] transition-colors"><i class="fas fa-power-off text-lg"></i></button>
+            <div class="flex flex-col">
+                <span id="console-title" class="text-[11px] font-bold text-white uppercase tracking-widest truncate font-code">EXECUTIVE B2</span>
+                <span id="console-type" class="text-[10px] font-medium text-gray-400 uppercase tracking-widest">The Town Hall</span>
+            </div>
+        </div>
+        <div class="flex flex-col items-center gap-3 w-1/2">
+            <div class="flex items-center gap-10">
+                <button onclick="prevStep()" class="text-gray-500 hover:text-white transition-colors"><i class="fas fa-chevron-left text-xl"></i></button>
+                <span id="console-counter" class="text-[10px] font-bold text-[var(--accent-brand)] tracking-[0.3em] uppercase font-code">SLIDE 01</span>
+                <button onclick="nextStep()" class="text-gray-500 hover:text-[var(--accent-brand)] transition-all hover:scale-110"><i class="fas fa-chevron-right text-xl"></i></button>
+            </div>
+            <div class="w-64 h-1 bg-[var(--bg-card)] overflow-hidden rounded-full">
+                <div id="progress-bar" class="h-full bg-[var(--accent-brand)] transition-all duration-300" style="width: 0%;"></div>
+            </div>
+        </div>
+        <div class="flex items-center justify-end gap-6 w-1/4">
+            <button onclick="toggleWhiteboard()" class="text-gray-500 hover:text-[var(--accent-brand)] transition-colors" title="Whiteboard"><i class="fas fa-pen-nib text-lg"></i></button>
+            <button onclick="toggleFullscreen()" class="text-gray-500 hover:text-white transition-colors" title="Fullscreen"><i class="fas fa-expand text-lg"></i></button>
+            <button onclick="toggleLessonNavigator()" class="text-gray-500 hover:text-[var(--accent-brand)] transition-colors" title="Agenda"><i class="fas fa-bars text-lg"></i></button>
+        </div>
+    </footer>
+
+    <aside id="lesson-navigator" class="fixed right-0 top-0 h-screen w-80 drawer flex flex-col pt-20 z-[5100]">
+        <div class="p-8 border-b border-[var(--border-light)] text-white font-bold uppercase tracking-widest flex justify-between items-center text-xs font-code bg-[var(--bg-void)]">Agenda <button onclick="toggleLessonNavigator()"><i class="fas fa-times text-gray-500 hover:text-[var(--accent-brand)]"></i></button></div>
+        <div id="nav-steps-list" class="flex-grow overflow-y-auto p-4 space-y-1 bg-[var(--bg-panel)] font-inter text-sm"></div>
+    </aside>
+
+    <aside id="teacher-hud" class="fixed right-0 top-0 h-screen w-[350px] drawer flex flex-col pt-20 z-[5100]">
+        <div class="p-8 border-b border-[var(--border-light)] flex justify-between items-center bg-[var(--bg-void)]">
+            <h2 class="font-display text-xl font-bold text-[var(--accent-brand)] tracking-widest uppercase"><i class="fas fa-briefcase mr-2"></i> C-Suite</h2>
+            <button onclick="toggleTeacherHUD()"><i class="fas fa-times text-lg text-gray-500 hover:text-white"></i></button>
+        </div>
+        <div class="flex-grow overflow-y-auto p-8 space-y-8 bg-[var(--bg-panel)]">
+            <div class="bg-[var(--accent-brand)]/5 p-6 rounded border border-[var(--accent-brand)]/30">
+                <p class="text-[10px] font-medium text-[var(--accent-brand)] uppercase tracking-widest mb-3 font-code">B2 Goal</p>
+                <p class="text-sm text-gray-300 leading-relaxed font-inter font-light">Train the student's executive presence. Help them stop using simple, flat sentences ("We need time") and start using emphatic cleft structures ("What we need is time") to command attention during presentations.</p>
+            </div>
+            <div>
+                <p class="text-[10px] font-medium text-gray-400 uppercase tracking-widest mb-4 font-code">Language Support</p>
+                <button onclick="toggleTranslations()" class="w-full py-3 bg-[var(--bg-card)] text-white border border-gray-700 rounded font-medium text-xs hover:border-[var(--accent-brand)] transition-all tracking-widest uppercase flex items-center justify-center gap-2"><i class="fas fa-language text-[var(--accent-brand)]"></i> Toggle Hints</button>
+            </div>
+            <div>
+                <p class="text-[10px] font-medium text-gray-400 uppercase tracking-widest mb-4 font-code">Bonus Actions</p>
+                <div class="space-y-3 font-code">
+                    <button onclick="triggerPraise('ORATOR', 'Exceptional public speaking presence.')" class="w-full py-4 bg-[var(--bg-card)] text-[var(--accent-brand)] border border-gray-700 rounded font-bold text-xs hover:border-[var(--accent-brand)] hover:bg-[var(--accent-brand)]/10 transition-all tracking-widest uppercase">SEND: ORATOR</button>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <div id="praise-overlay" class="fixed inset-0 z-[6000] flex items-center justify-center bg-black/95 backdrop-blur-md opacity-0 pointer-events-none transition-opacity duration-500 p-4">
+        <div id="praise-card" class="executive-card p-16 text-center transform scale-50 transition-transform duration-700 border border-[var(--accent-brand)] shadow-[0_0_50px_rgba(212,175,55,0.2)]">
+            <h2 id="praise-main" class="font-display text-5xl md:text-7xl font-bold tracking-tight uppercase mb-4 text-[var(--accent-brand)]"></h2>
+            <p id="praise-sub" class="text-sm font-medium tracking-[0.2em] uppercase mt-6 text-white font-inter opacity-70"></p>
+        </div>
+    </div>
+
+    <div id="whiteboard-container" class="write-mode">
+        <div id="whiteboard-layer"></div>
+        <div class="wb-tools">
+            <button class="wb-btn active" style="background: #E0E0E0;" onclick="setWbColor('#E0E0E0', this)" title="White"></button>
+            <button class="wb-btn" style="background: #D4AF37;" onclick="setWbColor('#D4AF37', this)" title="Gold"></button>
+            <button class="wb-btn" style="background: #2A9D8F;" onclick="setWbColor('#2A9D8F', this)" title="Green"></button>
+            <button class="wb-btn" style="background: #E63946;" onclick="setWbColor('#E63946', this)" title="Red"></button>
+            <div class="w-full h-px bg-gray-700 my-1"></div>
+            <button class="wb-btn" style="background: transparent; color: white;" onclick="setWbMode('text', this)" title="Text Mode"><i class="fas fa-font"></i></button>
+            <button class="wb-btn" style="background: transparent; color: var(--accent-alert);" onclick="setWbMode('delete', this)" title="Erase Word"><i class="fas fa-eraser"></i></button>
+            <button class="wb-btn" style="background: transparent; color: var(--accent-alert);" onclick="clearWhiteboard()" title="Clear All"><i class="fas fa-trash"></i></button>
+            <button class="wb-btn" style="background: transparent; color: white;" onclick="toggleWhiteboard()" title="Close"><i class="fas fa-times"></i></button>
+        </div>
+    </div>
+
+    <script>
+        let state = { hp: 100, xp: 0, current: 0 }; 
+        const esc = (s) => s ? s.replace(/'/g, "\\'").replace(/"/g, "&quot;") : "";
+        
+        const TYPES = { COVER: "Briefing", WARMUP: "Incident", VOCAB: "Terms", GRAMMAR: "Logic", SHIFTER: "Teleprompter", MCQ: "Check", DILEMMA: "Dilemma", SPEAKING: "Execution", WRAP: "Delivered" };
+        function step(type, title, html) { return { type, title, html }; }
+
+        function updateHUD() {
+            const h = document.getElementById('hp-val'); if(h) h.innerText = Math.max(0, state.hp) + '%';
+            if (state.hp <= 30) h.classList.replace('text-[var(--accent-light)]', 'text-[var(--accent-alert)]');
+            else h.classList.replace('text-[var(--accent-alert)]', 'text-[var(--accent-light)]');
+            const x = document.getElementById('xp-val'); if(x) x.innerText = state.xp + ' Pts';
+        }
+
+        const buildFollowUp = (tag, text, color="var(--accent-brand)") => `
+            <div class="mt-10 w-full bg-[var(--bg-card)] border-l-2 p-6 flex flex-col md:flex-row md:items-center gap-6 shadow-md" style="border-left-color: ${color}; border-radius: 0 4px 4px 0;">
+                <div class="w-10 h-10 rounded bg-[var(--bg-void)] border flex items-center justify-center flex-shrink-0" style="border-color: ${color}40;"><i class="fas fa-comment-dots text-lg" style="color: ${color}"></i></div>
+                <div class="text-left flex-grow">
+                    <p class="text-[9px] font-bold uppercase tracking-widest mb-1 font-code" style="color: ${color}">${tag}</p>
+                    <p class="text-lg text-white font-inter font-light italic leading-relaxed">"${text}"</p>
+                </div>
+            </div>
+        `;
+
+        const bGuide = (title, points) => step(TYPES.COVER, title, `
+            <div class="max-w-4xl mx-auto space-y-10 animate-in fade-in py-10">
+                <div class="executive-card border-t-2 border-[var(--accent-brand)]">
+                    <p class="text-[var(--accent-brand)] font-medium uppercase tracking-[0.3em] text-[10px] mb-8 flex items-center gap-3 font-code">
+                        <i class="fas fa-file-signature text-sm"></i> Executive Summary
+                    </p>
+                    <h2 class="font-display text-4xl md:text-5xl font-bold text-white tracking-tight leading-tight mb-10 pb-8 border-b border-[var(--border-light)]">${title}</h2>
+                    <div class="space-y-6 font-inter">
+                        ${points.map(p => `<p class="text-lg text-[var(--text-main)] font-light leading-relaxed flex items-start gap-4"><i class="fas fa-check text-[var(--accent-brand)] text-[14px] mt-1.5 opacity-60"></i> ${p}</p>`).join('')}
+                    </div>
+                </div>
+            </div>
+        `);
+
+        const bIncident = (id, title, prompt, incidents) => step(TYPES.WARMUP, title, `
+            <div class="max-w-5xl mx-auto w-full flex flex-col items-center py-10 animate-in fade-in" id="incident-${id}">
+                <div class="w-16 h-16 bg-[var(--bg-card)] border border-[var(--border-light)] rounded flex items-center justify-center mb-8 shadow-md">
+                    <i class="fas fa-users text-2xl text-[var(--accent-light)] opacity-80"></i>
+                </div>
+                <p class="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-[0.4em] mb-4 font-code">The Briefing</p>
+                <h2 class="font-display text-4xl md:text-5xl font-bold text-white tracking-tight mb-6 text-center">${title}</h2>
+                <p class="text-[var(--text-main)] text-xl font-light mb-12 text-center max-w-2xl font-inter leading-relaxed">${prompt}</p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 w-full mb-10">
+                    ${incidents.map((c, i) => `
+                        <button onclick="selectIncident('${id}', this, '${esc(c.followup)}')" class="incident-card relative bg-[var(--bg-card)] border border-[var(--border-light)] rounded p-8 text-left transition-all hover:border-[var(--accent-brand)] hover:bg-[var(--accent-brand)]/5 hover:-translate-y-1">
+                            <h3 class="text-lg font-bold text-white mb-3 font-inter">${c.title}</h3>
+                            <p class="text-sm text-[var(--text-muted)] font-inter font-light leading-relaxed">${c.desc}</p>
+                        </button>
+                    `).join('')}
+                </div>
+                
+                <div id="incident-fb-${id}" class="hidden w-full transition-all duration-500">
+                    ${buildFollowUp("WHERE DO YOU STAND", "", "var(--accent-brand)")}
+                </div>
+            </div>
+        `);
+
+        const bGrammar = (title, rule, examples, tagColor="var(--accent-brand)", followupTag="", followupText="") => step(TYPES.GRAMMAR, title, `
+            <div class="max-w-5xl mx-auto space-y-10 animate-in fade-in py-10">
+                <div class="text-center space-y-4 mb-14">
+                    <p class="text-[10px] font-medium text-[var(--text-muted)] uppercase tracking-[0.4em] mb-4 font-code">Framework</p>
+                    <h2 class="font-display text-4xl md:text-5xl font-bold text-white tracking-tight">${title}</h2>
+                </div>
+                <div class="executive-card mb-12 border-l-2" style="border-left-color: ${tagColor}">
+                    <p class="text-xl text-white font-light leading-relaxed font-inter">${rule.replace(/\[(.*?)\]/g, `<span style="color: ${tagColor}" class="font-semibold">$1</span>`)}</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+                    ${examples.map(ex => `
+                        <div class="bg-[var(--bg-card)] border border-[var(--border-light)] p-8 rounded text-center">
+                            <p class="text-[10px] font-bold uppercase text-[var(--text-muted)] tracking-widest mb-6 font-code border-b border-[var(--border-light)] pb-4">${ex.context}</p>
+                            <p class="text-xl font-medium text-white leading-relaxed font-inter">"${ex.text.replace(/\[(.*?)\]/g, `<span style="color: ${tagColor}">$1</span>`)}"</p>
+                        </div>
+                    `).join('')}
+                </div>
+                ${followupText ? buildFollowUp(followupTag, followupText, tagColor) : ''}
+            </div>
+        `);
+
+        const bTeleprompter = (id, title, rawQuote, options, followupTag="", followupText="") => {
+            const optsHtml = options.map((opt, i) => `
+                <div class="shifter-row group" onclick="handleShifter('${id}', this, ${opt.correct}, '${esc(opt.polished)}')">
+                    <div class="flex items-center gap-4 w-full">
+                        <div class="w-8 h-8 rounded border border-[var(--border-light)] flex items-center justify-center font-code text-xs text-[var(--text-muted)] group-hover:border-[var(--accent-brand)] transition-colors">${String.fromCharCode(65+i)}</div>
+                        <span class="text-base font-inter font-medium flex-grow text-left text-gray-300 group-hover:text-white transition-colors">${opt.verb.replace(/\[(.*?)\]/g, '<span class="text-[var(--accent-brand)] font-bold">$1</span>')}</span>
+                    </div>
+                </div>
+            `).join('');
+
+            return step(TYPES.SHIFTER, title, `
+                <div class="max-w-5xl mx-auto w-full flex flex-col items-center py-10 animate-in fade-in" id="shifter-${id}">
+                    <p class="text-[10px] font-bold text-[var(--accent-brand)] uppercase tracking-[0.4em] mb-4 font-code border border-[var(--accent-brand)]/30 px-4 py-1 rounded-sm">The Teleprompter</p>
+                    <h2 class="font-display text-4xl md:text-5xl font-bold text-white tracking-tight mb-12 text-center">${title}</h2>
+                    
+                    <div class="w-full flex flex-col md:flex-row gap-10 items-stretch">
+                        <!-- Left Side: Flat Script -->
+                        <div class="w-full md:w-1/2 flex flex-col">
+                            <p class="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-3 font-code">Flat Script (Boring)</p>
+                            <div class="executive-card flex-grow flex items-center justify-center border-l-2 border-[var(--text-muted)] p-8 bg-[var(--bg-void)]">
+                                <p class="raw-quote">"${rawQuote}"</p>
+                            </div>
+                        </div>
+
+                        <!-- Right Side: Interaction & Output -->
+                        <div class="w-full md:w-1/2 flex flex-col justify-center gap-4" id="shifter-opts-${id}">
+                            <p class="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1 font-code text-center">Select Emphasis Structure</p>
+                            ${optsHtml}
+                        </div>
+                    </div>
+
+                    <div id="shifter-result-${id}" class="w-full mt-10 hidden flex-col transition-all duration-500">
+                        <p class="text-[10px] font-bold text-[var(--accent-brand)] uppercase tracking-widest mb-3 font-code">Live Teleprompter Output</p>
+                        <div class="bg-[var(--bg-panel)] p-8 border border-[var(--accent-brand)] rounded flex items-center justify-center shadow-glow">
+                            <p id="shifter-final-text-${id}" class="polished-quote"></p>
+                        </div>
+                        ${followupText ? `<div class="mt-8">${buildFollowUp(followupTag, followupText)}</div>` : ''}
+                    </div>
+                </div>
+            `);
+        };
+
+        const bMCQ = (id, title, prompt, options, correctIdx, followupTag="", followupText="") => step(TYPES.MCQ, title, `
+            <div class="max-w-4xl mx-auto flex flex-col items-center justify-center min-h-[60vh] text-center space-y-8 animate-in fade-in py-10">
+                <p class="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-[0.4em] mb-2 font-code">Logic Check</p>
+                <h2 class="font-display text-4xl md:text-5xl font-bold text-white tracking-tight leading-tight">${title}</h2>
+                <p class="text-xl text-[var(--text-main)] font-light max-w-2xl font-inter leading-relaxed">${prompt}</p>
+                
+                <div class="w-full max-w-2xl space-y-4 mt-8">
+                    ${options.map((opt, i) => `
+                        <div class="mcq-row locked-check group" onclick="handleMCQ('${id}', this, ${i === correctIdx})">
+                            <div class="w-10 h-10 rounded border border-[var(--border-light)] bg-[var(--bg-void)] flex items-center justify-center text-sm font-bold text-[var(--text-muted)] mr-5 font-code group-hover:border-[var(--accent-brand)] group-hover:text-white transition-colors">${String.fromCharCode(65 + i)}</div>
+                            <span class="text-lg font-medium text-white text-left font-inter flex-grow">${opt.replace(/\[(.*?)\]/g, '<span class="text-[var(--accent-brand)]">$1</span>')}</span>
+                        </div>
+                    `).join('')}
+                </div>
+                <div id="followup-box-${id}" class="hidden w-full max-w-2xl mt-8 transition-all">
+                    ${followupText ? buildFollowUp(followupTag, followupText) : ''}
+                </div>
+            </div>
+        `);
+
+        function bConceptSplit(title, subtitle, leftTitle, leftText, leftEx, rightTitle, rightText, rightEx, followupTag="", followupText="") {
+            return step(TYPES.GRAMMAR, title, `
+                <div class="max-w-6xl mx-auto w-full flex flex-col items-center py-10 animate-in fade-in">
+                    <p class="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-[0.4em] mb-4 font-code">Concept Breakdown</p>
+                    <h2 class="font-display text-4xl md:text-5xl font-bold text-white tracking-tight mb-4 text-center">${title}</h2>
+                    <p class="text-[var(--text-main)] text-xl font-light mb-12 text-center max-w-2xl font-inter">${subtitle}</p>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 w-full">
+                        <div class="bg-[var(--bg-void)] border border-gray-800 p-10 rounded flex flex-col justify-between">
+                            <div>
+                                <h3 class="text-xl font-medium text-gray-400 mb-4 font-inter uppercase tracking-wide border-b border-gray-800 pb-4">${leftTitle}</h3>
+                                <p class="text-gray-500 font-inter text-lg font-light leading-relaxed mb-8">${leftText}</p>
+                            </div>
+                            <div class="bg-[var(--bg-panel)] p-6 rounded border border-gray-800">
+                                <p class="text-lg font-medium text-gray-400 italic font-inter">"${leftEx.en}"</p>
+                            </div>
+                        </div>
+
+                        <div class="executive-card p-10 flex flex-col justify-between relative overflow-hidden border-t-2 border-[var(--accent-brand)]">
+                            <div class="relative z-10">
+                                <h3 class="text-xl font-bold text-[var(--accent-brand)] mb-4 font-inter uppercase tracking-wide border-b border-[var(--border-light)] pb-4">${rightTitle}</h3>
+                                <p class="text-gray-200 font-inter text-lg font-light leading-relaxed mb-8">${rightText}</p>
+                            </div>
+                            <div class="bg-black/50 p-6 rounded border border-[var(--accent-brand)]/30 relative z-10">
+                                <p class="text-lg font-medium text-white italic font-inter">"${rightEx.en}"</p>
+                            </div>
+                        </div>
+                    </div>
+                    ${followupText ? `<div class="mt-10 w-full">${buildFollowUp(followupTag, followupText)}</div>` : ''}
+                </div>
+            `);
+        }
+
+        function bDiscussion(title, subtitle, tag, text, color="var(--accent-brand)") {
+            return step(TYPES.DILEMMA, title, `
+                <div class="max-w-4xl mx-auto py-16 animate-in fade-in flex flex-col items-center text-center">
+                    <i class="fas fa-users-cog text-5xl mb-6 text-[var(--accent-brand)] opacity-80"></i>
+                    <h2 class="font-display text-4xl md:text-5xl font-bold text-white mb-4 tracking-tight">${title}</h2>
+                    <p class="text-xl text-[var(--text-muted)] font-inter font-light mb-12 max-w-2xl leading-relaxed">${subtitle}</p>
+                    <div class="w-full text-left">${buildFollowUp(tag, text, color)}</div>
+                </div>
+            `);
+        }
+
+        function bTheConfession(title, prompt, instructions, template) {
+            return step(TYPES.SPEAKING, title, `
+                <div class="max-w-4xl mx-auto w-full flex flex-col items-center justify-center min-h-[60vh] text-center animate-in fade-in py-10 relative">
+                    <div class="w-20 h-20 bg-[var(--bg-void)] border border-[var(--accent-brand)] rounded-full flex items-center justify-center mb-8 shadow-glow"><i class="fas fa-microphone-alt text-2xl text-[var(--accent-brand)] animate-pulse"></i></div>
+                    <p class="text-[10px] font-bold text-[var(--accent-brand)] uppercase tracking-[0.4em] mb-4 font-code">Live Execution</p>
+                    <h2 class="font-display text-4xl md:text-5xl font-bold tracking-tight text-white leading-tight mb-6">${prompt}</h2>
+                    <p class="text-[var(--text-main)] text-xl font-light mb-12 font-inter leading-relaxed">${instructions}</p>
+                    
+                    <div class="w-full executive-card text-left border-l-2 border-[var(--accent-brand)] bg-[var(--bg-void)]">
+                        <p class="text-[10px] font-medium text-[var(--text-muted)] uppercase tracking-widest mb-6 font-code border-b border-gray-800 pb-2">The Blueprint</p>
+                        <div class="text-xl font-medium text-white leading-loose font-inter whitespace-pre-wrap">${template.replace(/\[(.*?)\]/g, '<span class="text-[var(--accent-brand)] border-b border-dashed border-[var(--accent-brand)] pb-1 px-1">[$1]</span>')}</div>
+                    </div>
+
+                    <div class="mt-16 w-full flex flex-col items-center">
+                        <div class="text-6xl font-display font-bold text-white mb-8 tabular-nums tracking-widest" id="pitch-timer">00:60</div>
+                        <button onclick="startPitchTimer(this)" class="btn-gold px-12 py-4"><i class="fas fa-play mr-2"></i> Deliver Keynote</button>
+                    </div>
+                </div>
+            `);
+        }
+
+        const lessonData = [
+            // 1
+            bGuide("The Town Hall", [
+                "Level: B2 Upper-Intermediate.",
+                "Focus: Executive presence, public speaking, and addressing a large audience.",
+                "Grammar Masterclass: Cleft Sentences (What, The reason, It was) for powerful emphasis.",
+                "Grammar Mechanics: Transforming flat sentences into dynamic, emotional speech.",
+                "Climax: A 60-second Town Hall Keynote to 500 virtual employees."
+            ]),
+            
+            // 2
+            bIncident("wu1", "The All-Hands Meeting", "Your company just missed its Q3 targets by 30%. Tomorrow, you must address 500 employees at the Town Hall meeting. How do you set the tone?", [
+                { title: "Brutally Transparent", desc: "Show them the bad numbers and admit the strategy failed.", followup: "If you show weakness, will investors and top talent abandon the company?" },
+                { title: "The Optimist", desc: "Spin the numbers, highlight small wins, and promise a better Q4.", followup: "If you spin bad news, will your employees stop trusting your words?" },
+                { title: "The Commander", desc: "Ignore apologies. Demand harder work and stricter deadlines.", followup: "If you demand harder work without explaining why, will morale collapse?" }
+            ]),
+
+            // 3
+            bConceptSplit("The Two Speeches", "The difference between an amateur manager and a visionary leader.", 
+                "The Flat Speech", "Direct, grammatically correct, but lacks emotion and focus. It puts people to sleep.", {en: "We need more innovation right now."},
+                "The Executive Presence", "Uses 'Cleft Sentences' to delay the main point, creating anticipation and power.", {en: "What we need right now is innovation."},
+                "PERSONAL", "Who is the best public speaker you have ever seen in real life? Why?"
+            ),
+
+            // 4
+            bGrammar("Rule 1: The 'What' Cleft", "To emphasize an ACTION or a THING, start the sentence with 'What', use the verb 'to be', and place the focus at the end.", [
+                {context: "Flat -> Emphasized", text: "'I want honesty.' -> [What I want is] honesty."},
+                {context: "Focusing on an Action", text: "'We must cut costs.' -> [What we must do is] cut costs."}
+            ], "var(--accent-brand)", "DILEMMA", "If a speaker uses too much emphasis and emotion, do they sound like a politician?"),
+
+            // 5
+            bTeleprompter("ts1", "The New Strategy", "We will focus on client retention this year.", [
+                {verb: "[What we will focus on is] client retention.", correct: true, polished: "What we will focus on this year is client retention."},
+                {verb: "[What focus we will is] client retention.", correct: false, polished: "Incorrect structure."}
+            ], "WHERE DO YOU STAND", "Is 'client retention' more important than 'acquiring new clients' during an economic crisis?"),
+
+            // 6
+            bMCQ("mc1", "Emphasizing Action", "Flat: 'We must launch the app.' -> Emphasized: What we must _____ launch the app.", [
+                "do is", "did is", "doing is"
+            ], 0, "PERSONAL", "Have you ever had to launch a project before it was completely ready?"),
+
+            // 7
+            bDiscussion("Corporate Jargon", "Leaders often use complex words to hide simple truths.", "WHERE DO YOU STAND", "Do you prefer a leader who speaks simply and directly, or one who uses sophisticated, inspiring vocabulary?"),
+
+            // 8
+            bGrammar("Rule 2: The 'Reason' Cleft", "When addressing failures or strategies, don't just say 'because'. Emphasize the 'WHY' by starting with 'The reason (why)'.", [
+                {context: "Flat -> Emphasized", text: "'We failed because of timing.' -> [The reason we failed was] timing."},
+                {context: "Longer Focus", text: "'I called this meeting to discuss the budget.' -> [The reason I called this meeting is] to discuss the budget."}
+            ]),
+
+            // 9
+            bTeleprompter("ts2", "Explaining a Failure", "We lost the contract because our competitor was faster.", [
+                {verb: "[The reason because] we lost was our competitor.", correct: false, polished: "Grammar trap! Never use 'reason' and 'because' together."},
+                {verb: "[The reason we lost the contract was] our competitor's speed.", correct: true, polished: "The reason we lost the contract was that our competitor was significantly faster."}
+            ], "DILEMMA", "When a project fails, is it better to blame an external competitor or an internal mistake?"),
+
+            // 10
+            bMCQ("mc2", "Addressing the Audience", "Flat: 'I am here to apologize.' -> Emphasized: The reason _____ to apologize.", [
+                "I am here is", "why am I here is", "I am here are"
+            ], 0, "PERSONAL", "Have you ever had to apologize on behalf of your company?"),
+
+            // 11
+            bDiscussion("The Layoffs", "Sometimes, Town Halls are used to announce bad news.", "DILEMMA", "If you have to fire 10% of the company, do you announce it to everyone in a Town Hall, or do it secretly one-by-one?"),
+
+            // 12
+            bGrammar("Rule 3: The 'It' Cleft (People & Places)", "To give credit to a specific PERSON or highlight a specific PLACE, start with 'It is/was' + Person/Place + 'who/that'.", [
+                {context: "Focus on a Person", text: "'Sarah saved the account.' -> [It was Sarah who] saved the account."},
+                {context: "Focus on a Place", text: "'We met in Tokyo.' -> [It was in Tokyo that] we met."}
+            ], "var(--text-main)", "PERSONAL", "Have you ever had a boss who took credit for your hard work?"),
+
+            // 13
+            bTeleprompter("ts3", "Giving Credit", "The engineering team fixed the critical bug overnight.", [
+                {verb: "[It was the engineering team who] fixed the bug.", correct: true, polished: "It was the engineering team who fixed the critical bug overnight."},
+                {verb: "[What the engineering team was] fixed the bug.", correct: false, polished: "Incorrect structure for emphasizing people."}
+            ], "WHERE DO YOU STAND", "Should leaders always praise publicly and criticize privately?"),
+
+            // 14
+            bMCQ("mc3", "Emphasizing the Person", "Flat: 'John made the final decision.' -> Emphasized: _____ made the final decision.", [
+                "It was John who", "What John was", "The reason John"
+            ], 0, "DILEMMA", "If 'John' makes a terrible decision, but you are his manager, who gets fired?"),
+
+            // 15
+            bDiscussion("The Spotlight", "Some people love public recognition, others hate it.", "PERSONAL", "Do you like being praised in front of the entire company, or do you prefer a private 'thank you' from your boss?"),
+
+            // 16
+            bGrammar("Rule 4: The 'Thing' Cleft", "To emphasize a specific object, issue, or concept, use 'The thing (that)' or 'The only thing'.", [
+                {context: "Focus on a Concept", text: "'I hate the new software.' -> [The thing I hate is] the new software."},
+                {context: "Focus on Exclusivity", text: "'We only need time.' -> [The only thing we need is] time."}
+            ]),
+
+            // 17
+            bTeleprompter("ts4", "The Budget Cut", "I am worried about the marketing budget.", [
+                {verb: "[The thing that worries me is] the marketing budget.", correct: true, polished: "The thing that worries me most is the marketing budget."},
+                {verb: "[What I am worried is] the marketing budget.", correct: false, polished: "Incorrect structure."}
+            ], "WHERE DO YOU STAND", "When a company is losing money, is Marketing always the first department that should be cut?"),
+
+            // 18
+            bMCQ("mc4", "The Core Issue", "Flat: 'Money matters most.' -> Emphasized: _____ is money.", [
+                "The thing that matters most", "What matters most thing", "The reason that matters"
+            ], 0, "PERSONAL", "When choosing a job, what is the thing that matters most to you? Salary, culture, or flexibility?"),
+
+            // 19
+            bGrammar("Rule 5: The 'All' Cleft", "To show that something is the ONLY focus, use 'All'. This is a highly emotional and powerful rhetorical device.", [
+                {context: "Focusing the Audience", text: "'We just need to survive Q1.' -> [All we need to do is] survive Q1."},
+                {context: "Setting a boundary", text: "'I am only asking for a chance.' -> [All I am asking for is] a chance."}
+            ]),
+
+            // 20
+            bTeleprompter("ts5", "The Motivation", "I just want you to stay focused on the mission.", [
+                {verb: "[All I want is for you to] stay focused.", correct: true, polished: "All I want is for you to stay focused on the mission."},
+                {verb: "[What I all want is] stay focused.", correct: false, polished: "Incorrect structure."}
+            ], "DILEMMA", "Does corporate 'motivational speeches' actually work, or do employees just care about their bonuses?"),
+
+            // 21
+            bMCQ("mc5", "Simplicity", "Flat: 'We just require your signature.' -> Emphasized: _____ is your signature.", [
+                "All we require", "The all we require", "What we all require"
+            ], 0, "PERSONAL", "Have you ever signed a contract without reading the terms and conditions?"),
+
+            // 22
+            bDiscussion("The Hostile Q&A", "After the speech, the employees get to ask questions.", "DILEMMA", "During the Q&A, an employee stands up and aggressively asks why the CEO gets a bonus while the staff gets nothing. How do you answer?"),
+
+            // 23
+            bGuide("The Keynote Blueprint", [
+                "When addressing a large audience, use Cleft Sentences to structure your points.",
+                "1. State the purpose: '[The reason] I gathered you here today is...'",
+                "2. Address the elephant: '[The thing] that worries us most is...'",
+                "3. Give credit: '[It was] the dev team [who]...'",
+                "4. Deliver the vision: '[What we must do] now is...'",
+                "5. The emotional close: '[All I ask] is that you...'"
+            ]),
+
+            // 24
+            bTheConfession("The Town Hall Keynote", "You are the CEO. Address your 500 employees.", "The company has just survived a massive cyberattack. The servers were down for 3 days. You have 60 seconds to address the company, restore morale, and explain the next steps.", "[The reason] I gathered you here today is...\n\nI know that [the thing] that worries you most is...\n\nHowever, [it was] our IT team [who]...\n\n[What we must do] moving forward is...\n\n[All I ask] from you today is...")
+            
+            // 25
+            , bDiscussion("Debriefing", "The microphone is off. You step off the stage.", "PERSONAL", "How did it feel to use these powerful structures? Do you feel more confident speaking in front of a crowd now?")
+        ];
+
+        function selectIncident(id, btn, followup) {
+            const container = document.getElementById(`incident-${id}`);
+            container.querySelectorAll('.incident-card').forEach(c => { 
+                c.classList.remove('selected', 'border-[var(--accent-brand)]'); 
+                c.style.opacity = '0.3'; 
+            });
+            btn.style.opacity = '1'; btn.classList.add('selected', 'border-[var(--accent-brand)]');
+            
+            const fbBox = document.getElementById(`incident-fb-${id}`);
+            fbBox.innerHTML = buildFollowUp("WHERE DO YOU STAND", followup, "var(--accent-brand)");
+            fbBox.classList.remove('hidden'); fbBox.classList.add('fade-in');
+        }
+
+        function handleShifter(id, row, isCorrect, polishedText) {
+            if(row.parentElement.classList.contains('locked')) return;
+            row.parentElement.classList.add('locked');
+            
+            const allRows = row.parentElement.querySelectorAll('.shifter-row');
+            allRows.forEach(r => {
+                if(r !== row) { r.style.opacity = '0.3'; r.style.pointerEvents = 'none'; }
+            });
+
+            if(isCorrect) {
+                row.classList.add('correct');
+                state.xp += 15; updateHUD(); shootConfetti();
+                const resBox = document.getElementById(`shifter-result-${id}`);
+                const resText = document.getElementById(`shifter-final-text-${id}`);
+                resText.innerText = polishedText;
+                resBox.classList.remove('hidden');
+                resBox.classList.add('flex', 'fade-in');
+                setTimeout(() => resText.classList.add('revealed'), 300);
+            } else {
+                row.classList.add('wrong', 'shake');
+                state.hp -= 5; updateHUD();
+                setTimeout(() => row.parentElement.classList.remove('locked'), 1000);
+                setTimeout(() => row.classList.remove('wrong', 'shake'), 1000);
+                allRows.forEach(r => { r.style.opacity = '1'; r.style.pointerEvents = 'auto'; });
+            }
+        }
+
+        function handleMCQ(id, row, isCorrect) {
+            if(row.classList.contains('locked-check')) {
+                const parent = row.parentElement; 
+                Array.from(parent.children).forEach(child => { 
+                    child.classList.add('opacity-40', 'pointer-events-none'); 
+                    child.classList.remove('locked-check');
+                });
+                row.classList.remove('opacity-40', 'pointer-events-none'); 
+                
+                if(isCorrect) {
+                    row.classList.add('correct'); state.xp += 10; updateHUD(); shootConfetti();
+                } else { 
+                    row.classList.add('wrong', 'shake'); state.hp -= 5; updateHUD(); 
+                    Array.from(parent.children).forEach(child => {
+                        if (child.onclick && child.onclick.toString().includes('true')) {
+                            child.classList.remove('opacity-40', 'pointer-events-none');
+                            child.classList.add('correct');
+                        }
+                    });
+                }
+                const fBox = document.getElementById(`followup-box-${id}`); if(fBox) fBox.classList.remove('hidden'); fBox.classList.add('fade-in');
+            }
+        }
+
+        let pitchInterval;
+        function startPitchTimer(btn) {
+            btn.style.display = 'none';
+            let time = 60;
+            const display = document.getElementById('pitch-timer');
+            display.classList.add('text-[var(--accent-alert)]');
+            pitchInterval = setInterval(() => {
+                time--;
+                display.innerText = `00:${time < 10 ? '0'+time : time}`;
+                if (time <= 10) display.classList.add('animate-pulse');
+                if (time <= 0) { clearInterval(pitchInterval); display.innerText = "APPLAUSE"; shootConfetti(); state.xp += 50; updateHUD(); display.classList.remove('animate-pulse');}
+            }, 1000);
+        }
+
+        function buildLessonNavigator() {
+            const list = document.getElementById('nav-steps-list');
+            if (!list) return;
+            list.innerHTML = '';
+            lessonData.forEach((step, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'w-full text-left p-3 rounded mb-1 transition-all duration-200 border border-transparent text-[var(--text-muted)] hover:bg-[var(--bg-card)] hover:text-white flex flex-col font-inter';
+                btn.innerHTML = `<span class="text-[9px] uppercase tracking-widest opacity-70 font-code mb-1 text-[var(--accent-brand)]">${step.type}</span> <span class="font-medium">${String(index + 1).padStart(2, '0')}. ${step.title}</span>`;
+                btn.onclick = () => { state.current = index; renderStep(); toggleLessonNavigator(); };
+                list.appendChild(btn);
+            });
+        }
+
+        function toggleElementClass(id, action, className) {
+            const el = document.getElementById(id);
+            if (el) { if (action === 'add') el.classList.add(className); else if (action === 'remove') el.classList.remove(className); }
+        }
+
+        function startMission() {
+            toggleElementClass('dashboard', 'add', 'hidden'); toggleElementClass('dashboard', 'remove', 'flex');
+            toggleElementClass('hud-top', 'remove', 'hidden'); toggleElementClass('hud-top', 'add', 'flex');
+            toggleElementClass('mission-arena', 'remove', 'hidden'); toggleElementClass('mission-arena', 'add', 'flex');
+            toggleElementClass('nav-console', 'remove', 'hidden'); toggleElementClass('nav-console', 'add', 'flex');
+            buildLessonNavigator(); renderStep();
+        }
+
+        function goHome() {
+            toggleElementClass('dashboard', 'remove', 'hidden'); toggleElementClass('dashboard', 'add', 'flex');
+            toggleElementClass('hud-top', 'add', 'hidden'); toggleElementClass('hud-top', 'remove', 'flex');
+            toggleElementClass('mission-arena', 'add', 'hidden'); toggleElementClass('mission-arena', 'remove', 'flex');
+            toggleElementClass('nav-console', 'add', 'hidden'); toggleElementClass('nav-console', 'remove', 'flex');
+            state.current = 0; state.hp = 100; state.xp = 0; updateHUD();
+            document.getElementById('lesson-navigator')?.classList.remove('active');
+            document.getElementById('teacher-hud')?.classList.remove('active');
+            clearInterval(pitchInterval);
+        }
+
+        function renderStep() {
+            if (!lessonData || !lessonData[state.current]) return;
+            const step = lessonData[state.current];
+            const sCount = document.getElementById('console-counter'); if(sCount) sCount.innerText = `SLIDE ${String(state.current + 1).padStart(2, '0')}/${lessonData.length}`;
+            const content = document.getElementById('mission-content'); if(content) content.innerHTML = `<div class="w-full max-w-7xl mx-auto">${step.html}</div>`;
+            
+            const pBar = document.getElementById('progress-bar');
+            if(pBar) pBar.style.width = `${((state.current + 1) / lessonData.length) * 100}%`;
+
+            updateHUD();
+            
+            const navList = document.getElementById('nav-steps-list');
+            if (navList) {
+                Array.from(navList.children).forEach((btn, i) => {
+                    if(i === state.current) { btn.classList.add('bg-[var(--bg-card)]', 'text-white', 'border-l-2', 'border-[var(--accent-brand)]'); btn.classList.remove('text-[var(--text-muted)]'); } 
+                    else { btn.classList.remove('bg-[var(--bg-card)]', 'text-white', 'border-l-2', 'border-[var(--accent-brand)]'); btn.classList.add('text-[var(--text-muted)]'); }
+                });
+            }
+            clearInterval(pitchInterval);
+        }
+
+        function nextStep() { if (state.current < lessonData.length - 1) { state.current++; renderStep(); } }
+        function prevStep() { if (state.current > 0) { state.current--; renderStep(); } }
+        
+        function toggleLessonNavigator() { document.getElementById('lesson-navigator').classList.toggle('active'); document.getElementById('teacher-hud')?.classList.remove('active'); }
+        function toggleTeacherHUD() { document.getElementById('teacher-hud').classList.toggle('active'); document.getElementById('lesson-navigator')?.classList.remove('active'); }
+        function toggleTranslations() { document.body.classList.toggle('show-translation'); }
+
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) { document.documentElement.requestFullscreen().catch(err => console.log(err)); } 
+            else { if (document.exitFullscreen) document.exitFullscreen(); }
+        }
+
+        let wbTextColor = '#E0E0E0';
+        let wbToolMode = 'text';
+
+        function toggleWhiteboard() { document.getElementById('whiteboard-container').classList.toggle('active'); }
+
+        function setWbColor(color, btn) {
+            wbTextColor = color; wbToolMode = 'text';
+            document.getElementById('whiteboard-container').className = 'active write-mode';
+            document.querySelectorAll('.wb-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active');
+        }
+
+        function setWbMode(mode, btn) {
+            wbToolMode = mode;
+            document.getElementById('whiteboard-container').className = mode === 'text' ? 'active write-mode' : 'active delete-mode';
+            document.querySelectorAll('.wb-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active');
+        }
+
+        function clearWhiteboard() { document.getElementById('whiteboard-layer').innerHTML = ''; }
+
+        const wbContainer = document.getElementById('whiteboard-container');
+        if(wbContainer) {
+            wbContainer.addEventListener('click', function(e) {
+                if(e.target.closest('.wb-tools')) return;
+                const layer = document.getElementById('whiteboard-layer');
+                if(wbToolMode === 'delete') {
+                    if(e.target.classList.contains('wb-text-note')) {
+                        e.target.style.transform = 'scale(0.8)'; e.target.style.opacity = '0';
+                        setTimeout(() => e.target.remove(), 200);
+                    }
+                    return;
+                }
+                if(wbToolMode === 'text') {
+                    if(e.target.classList.contains('wb-text-note')) return;
+                    const note = document.createElement('div');
+                    note.className = 'wb-text-note transition-all duration-200';
+                    note.contentEditable = true; note.style.color = wbTextColor;
+                    note.style.left = e.clientX + 'px'; note.style.top = (e.clientY - 20) + 'px'; 
+                    note.addEventListener('blur', function() { if(this.innerText.trim() === '') this.remove(); });
+                    layer.appendChild(note); setTimeout(() => note.focus(), 10);
+                }
+            });
+        }
+
+        function triggerPraise(main, sub) {
+            document.getElementById('teacher-hud')?.classList.remove('active'); 
+            const overlay = document.getElementById('praise-overlay'); const card = document.getElementById('praise-card');
+            state.xp += 100; updateHUD();
+            document.getElementById('praise-main').innerText = main; document.getElementById('praise-sub').innerText = sub;
+            overlay.classList.remove('opacity-0', 'pointer-events-none');
+            setTimeout(() => card.classList.replace('scale-50', 'scale-100'), 50); shootConfetti();
+            setTimeout(() => { card.classList.replace('scale-100', 'scale-50'); overlay.classList.add('opacity-0', 'pointer-events-none'); }, 2500);
+        }
+
+        function shootConfetti() {
+            const cCanvas = document.getElementById('confetti-canvas'); const cCtx = cCanvas.getContext('2d');
+            cCanvas.width = window.innerWidth; cCanvas.height = window.innerHeight;
+            const pieces = []; const colors = ['#D4AF37', '#F3E5AB', '#FFFFFF'];
+            for(let i=0; i<60; i++) pieces.push({ x: cCanvas.width/2, y: cCanvas.height/2+100, vx: (Math.random()-0.5)*20, vy: (Math.random()-1)*20-5, size: Math.random()*6+3, color: colors[Math.floor(Math.random()*colors.length)], rot: Math.random()*360, rotSpeed: (Math.random()-0.5)*10 });
+            function animateC() {
+                cCtx.clearRect(0, 0, cCanvas.width, cCanvas.height); let active = false;
+                pieces.forEach(p => {
+                    p.x += p.vx; p.y += p.vy; p.vy += 0.5; p.rot += p.rotSpeed; if(p.y < cCanvas.height) active = true;
+                    cCtx.save(); cCtx.translate(p.x, p.y); cCtx.rotate(p.rot*Math.PI/180); cCtx.fillStyle = p.color; 
+                    cCtx.fillRect(-p.size/2, -p.size/2, p.size, p.size); cCtx.restore();
+                });
+                if(active) requestAnimationFrame(animateC); else cCtx.clearRect(0, 0, cCanvas.width, cCanvas.height);
+            }
+            animateC();
+        }
+        
+        window.onload = () => { updateHUD(); buildLessonNavigator(); goHome(); };
+    </script>
+</body>
+</html>
